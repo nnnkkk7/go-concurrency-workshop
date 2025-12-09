@@ -2,7 +2,7 @@
 
 実務でよくある「大量のログファイルを急いで解析してほしい」という状況を題材に、Goの並行処理を学ぶハンズオンワークショップです。
 
-## 🎯 このワークショップで学べること
+##  このワークショップで学べること
 
 - **goroutineとchannelの実践的な使い方**
 - **段階的な改善アプローチ**：逐次処理 → 並行化 → 最適化
@@ -10,13 +10,13 @@
 - **Go 1.25の新機能** `WaitGroup.Go()`の活用
 - **パフォーマンスチューニング**の手法
 
-## 📋 必要な環境
+##  必要な環境
 
 - **Go 1.25以降**（WaitGroup.Go()を使用）
 - エディタ（VS Code推奨）
 - ターミナル
 
-## 🚀 クイックスタート
+##  クイックスタート
 
 ### 1. リポジトリをクローン
 
@@ -43,11 +43,11 @@ go run ./workshop/phase1/main.go
 go run ./hint/phase1/main.go
 ```
 
-## 📚 ワークショップの進め方
+##  ワークショップの進め方
 
 このワークショップでは **2つの難易度レベル** から選べます：
 
-### 💪 まずは workshop/ で挑戦
+###  まずは workshop/ で挑戦
 
 各Phaseを自分で実装していきます。シンプルなTODOコメントのみが付いています。
 
@@ -60,7 +60,7 @@ go run ./workshop/phase4/main.go  # 自由課題
 
 詳しくは [workshop/README.md](workshop/README.md) を参照。
 
-### 🆘 詰まったら hint/ を参照
+###  詰まったら hint/ を参照
 
 `workshop/` で詰まったら、`hint/` ディレクトリに詳細なヒント付きコードがあります。
 
@@ -94,7 +94,7 @@ goroutineとchannelを使って並行処理化します。
 Phase 3を超える最適化に挑戦します。
 **制約なし - あらゆる手法を試してみましょう！**
 
-## 🏆 成果物
+##  成果物
 
 各Phaseの模範解答は `solutions/` ディレクトリにあります：
 
@@ -103,7 +103,7 @@ Phase 3を超える最適化に挑戦します。
 - [solutions/phase3/main.go](solutions/phase3/main.go) - ワーカープール版
 - [solutions/phase4/main.go](solutions/phase4/main.go) - 最適化版
 
-## 📖 ドキュメント
+##  ドキュメント
 
 ### 参加者向け
 - [workshop/README.md](workshop/README.md) - 実装ガイド
@@ -115,7 +115,7 @@ Phase 3を超える最適化に挑戦します。
 - [docs/SLIDES.md](docs/SLIDES.md) - 講義スライド
 - [docs/SETUP_CHECK.md](docs/SETUP_CHECK.md) - 環境確認チェックリスト
 
-## 🔧 プロジェクト構成
+##  プロジェクト構成
 
 ```
 go-concurrency-workshop/
@@ -141,7 +141,7 @@ go-concurrency-workshop/
 └── docs/                # ドキュメント
 ```
 
-## 💡 よくある質問
+##  よくある質問
 
 ### Q: Go 1.25未満でも動きますか？
 
@@ -159,15 +159,15 @@ A: 以下のオプションが使えます：
 go run cmd/loggen/main.go --files=100 --lines=50000
 ```
 
-## 🎓 学習リソース
+##  学習リソース
 
 - [Go Concurrency Patterns](https://antonz.org/go-concurrency/goroutines/) - goroutinesの詳しい解説
 - [Go 1.25 Release Notes](https://tip.golang.org/doc/go1.25) - 最新機能の公式ドキュメント
 
-## 📝 ライセンス
+##  ライセンス
 
 MIT License
 
-## 🙋 質問・フィードバック
+##  質問・フィードバック
 
 Issuesでお気軽にどうぞ！
