@@ -77,7 +77,7 @@ CPUは暇な時間が多い。ファイルI/Oの待ち時間がもったいな�
 ---
 
 
-## goroutine
+# goroutine
 
 ---
 
@@ -124,13 +124,18 @@ func main() {
 # goroutine が軽い理由
 
 OSスレッド（従来の並行処理）
-- 1つあたり約1〜2MBのメモリ
+
+- スタックサイズ：Linux 2〜8MB / macOS 512KB / Windows 1MB
 - OSが管理するので切り替えコストが高い
 
 goroutine（Goの並行処理）
-- 1つあたり約2KBのメモリ（1000分の1）
-- Goランタイムが管理、必要に応じてスタック拡張
+
+- 初期スタックサイズ：わずか2KB（Go 1.4以降）
+- Goランタイムが管理、必要に応じて動的に拡張・縮小
+- 最大：64bit 1GB / 32bit 250MB
 - 数千〜数万個でも問題なく動く
+
+ 参考: [Go runtime/stack.go](https://go.dev/src/runtime/stack.go) | [What is a goroutine? And what is their size?](https://tpaschalis.me/goroutines-size/) | [Cloudflare: How Stacks are Handled in Go](https://blog.cloudflare.com/how-stacks-are-handled-in-go/)
 
 ---
 
@@ -484,13 +489,13 @@ func main() {
 
 # デッドロックを防ぐコツ
 
-1. 送信回数と受信回数を一致させる
+1. 送信回数と受信回数を一致させる。
    50個送るなら、50回受け取る
 
-2. 送信と受信を別の goroutine で行う
+2. 送信と受信を別の goroutine で行う。
    同じ goroutine 内で両方やると詰まりやすい
 
-3. 「誰が受け取るのか」を常に意識
+3. 「誰が受け取るのか」を常に意識。
    送る前に、受け取る側が存在するか確認
 
  参考: [Go Memory Model](https://go.dev/ref/mem) | [Effective Go - Channels](https://go.dev/doc/effective_go#channels)
@@ -520,11 +525,29 @@ for _, file := range files {
 
 # 大量の goroutine の問題
 
-- メモリ: 1 goroutine あたり最低2KB、5000個で10MB以上
-- ファイルハンドル: OSには同時に開けるファイル数の上限がある
-- CPUコア数: 8コアのマシンで5000並列にしても、実際に同時に動くのは8つ
+goroutine は軽量だが、無制限に作ると問題が起きる
 
-同時実行数を適切に制限した方が効率的な場合がある。
+- メモリ消費
+    - 1個あたり約2.7KB使う（最初は2KBだが、実際は少し増える）
+    - 例: 5000個なら約13MB、100万個なら約2.6GB
+    - 大量に作ると、メモリが足りなくなる可能性
+    
+
+- ファイルを同時に開ける数に上限がある
+    - OS には「一度に開けるファイル数」の制限がある
+    - macOS: 256個まで / Linux: 1024個まで（デフォルト）
+    - 確認方法: ターミナルで `ulimit -n` を実行
+    - 50ファイルなら問題ないが、5000ファイルだと上限に引っかかる
+
+- CPU で同時に動けるのは限られている
+    - 8コアのマシンで5000個の goroutine を起動しても
+    - 実際に CPU 上で同時に実行されるのは最大8個だけ
+    - 残りは順番待ち（切り替えながら実行）
+    - 切り替えの処理にもコストがかかる
+
+結論: goroutine の数を適切に制限した方が効率的
+
+ 参考: [What is a goroutine? And what is their size?](https://tpaschalis.me/goroutines-size/) | [How Many Goroutines Can Go Run?](https://leapcell.io/blog/how-many-goroutines-can-go-run)
 
 ---
 
@@ -656,7 +679,7 @@ jobs := make(chan string, 100)
 
 
 
-## 並行処理パターン集
+# 並行処理パターン集
 
 ---
 
@@ -1438,11 +1461,3 @@ Phase 4（15分） さらなる高速化
 - 改善率で競う（PCスペック差を吸収）
 - 隣に聞いてOK、教え合い推奨
 - 困ったら手を挙げて
-
----
-
-# workshop/phase1/main.go を開いて
-
-## Phase 1 スタート
-
-## 制限時間 12分
