@@ -196,7 +196,7 @@ go func() {
 wg.Wait()  // カウンタが0になるまでここで待つ
 ```
 
- 参考: [sync.WaitGroup - pkg.go.dev](https://pkg.go.dev/sync#WaitGroup)
+ 参考: [sync.WaitGroup - pkg.go.dev](https://pkg.go.dev/sync#WaitGroup) | [WaitGroup.Go - pkg.go.dev](https://pkg.go.dev/sync#WaitGroup.Go)
 
 ---
 
@@ -250,6 +250,53 @@ go func() {
 
 processFile でエラーが起きても、Done() は必ず呼ばれる。
 カウンタが減らないまま残る事故を防げる。
+
+---
+
+# Go 1.25: WaitGroup.Go()
+
+Go 1.25 から、もっと簡単に書ける新しいメソッドが追加された。
+
+従来のパターン:
+
+```go
+wg.Add(1)
+go func() {
+    defer wg.Done()
+    processFile(f)
+}()
+```
+
+新しいパターン (Go 1.25+):
+
+```go
+wg.Go(func() {
+    processFile(f)
+})
+```
+
+`WaitGroup.Go()` は内部で `Add(1)` と `defer Done()` を自動で行う。
+
+---
+
+# WaitGroup.Go() の利点
+
+1つ目: Add/Done の書き忘れを防ぐ
+
+- 手動で Add(1) を書く必要がない
+- defer wg.Done() も不要
+
+2つ目: コードが簡潔になる
+
+- ボイラープレートが減る
+- 読みやすく、ミスも減る
+
+3つ目: 安全性が向上
+
+- Add と Done の数が必ず一致する
+- デッドロックのリスクが減る
+
+ 参考: [WaitGroup.Go - pkg.go.dev](https://pkg.go.dev/sync#WaitGroup.Go) | [Go 1.25 Release Notes](https://go.dev/doc/go1.25)
 
 ---
 
@@ -437,6 +484,8 @@ channel は「データの受け渡し場所」ではなく「待ち合わせ場
 ```
 
 ブロックがあるから、安全な並行処理ができる
+
+ 参考: [Go Spec - Channel types](https://go.dev/ref/spec#Channel_types) | [Go Memory Model](https://go.dev/ref/mem) | [Gist of Go: Channels](https://antonz.org/go-concurrency/channels/)
 
 ---
 
