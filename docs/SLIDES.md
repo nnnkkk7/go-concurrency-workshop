@@ -597,9 +597,19 @@ for file := range jobs {
 }
 ```
 
-これは「jobs から値を受け取り続け、jobs が閉じたらループを抜ける」という意味。
+この構文の動作:
 
-channel を閉じる（`close(jobs)`）と、受信側は残りの値を受け取った後、ループを終了する。
+1. jobs から値を1つ受け取る
+2. ループ本体を実行
+3. また jobs から受け取る
+4. **jobs が close されるまで繰り返す**
+
+通常の for ループとの違い:
+
+- 通常: `for i := 0; i < 10; i++` → 回数が決まっている
+- channel: `for file := range jobs` → **終了条件 = channel が閉じる**
+
+close されると、バッファ内の残りの値を全て処理してから、ループを抜ける。
 
 ---
 
@@ -623,15 +633,57 @@ for i := 0; i < len(files); i++ {
 
 # close の役割
 
+close は「もう値を送らない」という合図
+
 ```go
-close(jobs)
+close(jobs)  // jobsチャネルを閉じる
 ```
 
-「この channel にはもう値を送らない」という宣言。
+**close は送信側だけが実行すべき、受信側は禁止**
 
-ワーカー側の `for file := range jobs` は、close されると、残りの値を処理した後にループを抜ける。
+- ✓ 送信側（書き込む側）だけがcloseできる
+- ✗ 受信側（読み込む側）はcloseしてはいけない
+- ✓ channelは1回だけcloseできる（2回目はpanic）
 
-close しないと、ワーカーは永遠に次の仕事を待ち続ける。
+---
+
+# close すると何が起きる？
+
+送信側（main）
+
+- `close(jobs)` を呼ぶ
+- これ以降、送信できなくなる
+- 送信すると → panic 発生
+
+受信側（ワーカー）
+
+- `for file := range jobs` が終了条件を検知
+- バッファに残っている値は全て処理できる
+- 全て処理したらループを抜ける
+- その後の受信 → ゼロ値が返る（ブロックしない）
+
+---
+
+# close を忘れるとどうなる？
+
+```go
+for _, file := range files {
+    jobs <- file
+}
+// close(jobs)  ← これを忘れると...
+```
+
+結果: **デッドロック発生**
+
+なぜデッドロックになるのか:
+
+1. ワーカーは `for file := range jobs` で待ち続ける
+2. main は結果を待ち続ける
+3. jobs は閉じられないので、ワーカーは永遠に待つ
+4. → 誰も進めない
+
+
+ 参考: [Go builtin: close](https://pkg.go.dev/builtin#close) | [Go by Example: Closing Channels](https://gobyexample.com/closing-channels) | [Gist of Go: Channels](https://antonz.org/go-concurrency/channels/)
 
 ---
 
