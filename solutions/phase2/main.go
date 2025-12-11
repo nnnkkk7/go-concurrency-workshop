@@ -15,19 +15,33 @@ func main() {
 	startTime := time.Now()
 
 	logDir := "../../logs"
-	files, err := filepath.Glob(filepath.Join(logDir, "access_*.json"))
+
+	logRoot, err := os.OpenRoot(logDir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error opening log directory: %v\n", err)
+		os.Exit(1)
+	}
+	defer logRoot.Close()
+
+	pattern := filepath.Join(logDir, "access_*.json")
+	fullPaths, err := filepath.Glob(pattern)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error finding log files: %v\n", err)
 		os.Exit(1)
 	}
 
-	results := processFiles(files)
+	files := make([]string, len(fullPaths))
+	for i, path := range fullPaths {
+		files[i] = filepath.Base(path)
+	}
+
+	results := processFiles(logRoot, files)
 
 	printResults(results, time.Since(startTime))
 }
 
 // processFiles はファイルを並行処理します
-func processFiles(files []string) []*logparser.Result {
+func processFiles(root *os.Root, files []string) []*logparser.Result {
 	// 結果を収集するチャネルを作成
 	resultCh := make(chan *logparser.Result, len(files))
 
@@ -40,7 +54,7 @@ func processFiles(files []string) []*logparser.Result {
 		go func(name string) {
 			defer wg.Done()
 
-			result, err := processFile(name)
+			result, err := processFile(root, name)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error processing %s: %v\n", name, err)
 				return
@@ -67,15 +81,15 @@ func processFiles(files []string) []*logparser.Result {
 }
 
 // processFile は1つのログファイルを解析します
-func processFile(filename string) (*logparser.Result, error) {
-	file, err := os.Open(filename)
+func processFile(root *os.Root, filename string) (*logparser.Result, error) {
+	file, err := root.Open(filename)
 	if err != nil {
 		return nil, err
 	}
 	defer file.Close()
 
 	result := &logparser.Result{
-		FileName:     filepath.Base(filename),
+		FileName:     filename,
 		StatusCounts: make(map[int]int),
 	}
 

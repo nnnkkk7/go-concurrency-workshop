@@ -14,13 +14,27 @@ func main() {
 	startTime := time.Now()
 
 	logDir := "../../logs"
-	files, err := filepath.Glob(filepath.Join(logDir, "access_*.json"))
+
+	logRoot, err := os.OpenRoot(logDir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error opening log directory: %v\n", err)
+		os.Exit(1)
+	}
+	defer logRoot.Close()
+
+	pattern := filepath.Join(logDir, "access_*.json")
+	fullPaths, err := filepath.Glob(pattern)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error finding log files: %v\n", err)
 		os.Exit(1)
 	}
 
-	results := processFiles(files)
+	files := make([]string, len(fullPaths))
+	for i, path := range fullPaths {
+		files[i] = filepath.Base(path)
+	}
+
+	results := processFiles(logRoot, files)
 
 	printResults(results, time.Since(startTime))
 }
@@ -39,21 +53,21 @@ func main() {
 // - バッファサイズを調整
 // など、何でも試してみましょう！
 
-func processFiles(files []string) []*logparser.Result {
+func processFiles(root *os.Root, files []string) []*logparser.Result {
 	// TODO: ここに実装を書いてください
 	return nil
 }
 
-func processFile(filename string) (*logparser.Result, error) {
+func processFile(root *os.Root, filename string) (*logparser.Result, error) {
 	// TODO: 必要に応じてこの関数も最適化してください
-	file, err := os.Open(filename)
+	file, err := root.Open(filename)
 	if err != nil {
 		return nil, err
 	}
 	defer file.Close()
 
 	result := &logparser.Result{
-		FileName:     filepath.Base(filename),
+		FileName:     filename,
 		StatusCounts: make(map[int]int),
 	}
 
