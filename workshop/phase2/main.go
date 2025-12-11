@@ -46,7 +46,7 @@ func main() {
 // ============================================================
 // TODO: この関数を実装してください
 // ============================================================
-// ヒント: goroutineとchannelを使って並行処理を実現します
+// HINT: goroutineとchannelを使って並行処理を実現します
 func processFiles(root *os.Root, files []string) []*logparser.Result {
 	// まずは逐次処理版（Phase 1と同じ）
 	results := make([]*logparser.Result, 0, len(files))

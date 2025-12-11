@@ -48,7 +48,7 @@ func main() {
 // ============================================================
 // TODO: この関数を実装してください
 // ============================================================
-// ヒント: ワーカープールパターンを使います（固定数のgoroutineで処理）
+// HINT: ワーカープールパターンを使います（固定数のgoroutineで処理）
 // Go 1.25の新機能 WaitGroup.Go() を使ってみましょう
 func processFiles(root *os.Root, files []string, numWorkers int) []*logparser.Result {
 	// まずは逐次処理版（Phase 1と同じ）
