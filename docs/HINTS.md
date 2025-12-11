@@ -53,7 +53,7 @@ goroutineを使って各ファイルを別々に処理し、結果をchannelで�
    - processFile()を呼び出し
    - 結果をchannelに送信
 4. 別のgoroutineでWaitGroupを待ち、完了したらchannelをclose
-5. channelから結果を全部受け取る
+5. channelから結果をfor rangeで全部受け取る
 `
 
 ---
