@@ -8,6 +8,7 @@ import (
 	"math"
 	"math/rand/v2"
 	"os"
+	"path/filepath"
 	"time"
 )
 
@@ -80,6 +81,21 @@ func parseFlags() *Config {
 func run(cfg *Config) error {
 	if err := os.MkdirAll(cfg.OutputDir, 0755); err != nil {
 		return fmt.Errorf("failed to create output directory: %w", err)
+	}
+
+	// Clean up existing log files before generating new ones
+	pattern := filepath.Join(cfg.OutputDir, "*.json")
+	existingFiles, err := filepath.Glob(pattern)
+	if err != nil {
+		return fmt.Errorf("failed to search for existing files: %w", err)
+	}
+	for _, file := range existingFiles {
+		if err := os.Remove(file); err != nil {
+			return fmt.Errorf("failed to remove existing file %s: %w", file, err)
+		}
+	}
+	if len(existingFiles) > 0 {
+		fmt.Printf("Cleaned up %d existing log file(s)\n", len(existingFiles))
 	}
 
 	outputRoot, err := os.OpenRoot(cfg.OutputDir)
