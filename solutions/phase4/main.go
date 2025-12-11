@@ -1,7 +1,7 @@
 package main
 
 import (
-	"encoding/json"
+	"bufio"
 	"fmt"
 	"io/fs"
 	"os"
@@ -11,8 +11,17 @@ import (
 	"sync"
 	"time"
 
+	"github.com/bytedance/sonic"
 	"github.com/nnnkkk7/go-concurrency-workshop/pkg/logparser"
 )
+
+// OptimizedResult はPhase4専用の最適化版Result構造体
+// StatusCountsをmapではなく配列にすることでメモリアロケーションとアクセス速度を改善
+type OptimizedResult struct {
+	FileName     string
+	TotalCount   int
+	StatusCounts [600]int // 固定配列でステータスコード0-599をカバー
+}
 
 func main() {
 	startTime := time.Now()
@@ -47,13 +56,13 @@ func main() {
 }
 
 // processFiles は最適化されたワーカープールパターンでファイルを処理します
-func processFiles(root *os.Root, files []string, numWorkers int) []*logparser.Result {
+func processFiles(root *os.Root, files []string, numWorkers int) []*OptimizedResult {
 	fileCount := len(files)
 
-	// ジョブ用にはより小さいバッファを使用（保留中の作業のみを保持）
-	jobs := make(chan string, numWorkers*2)
-	// 結果用にはより大きいバッファを使用（全ての結果を保持）
-	results := make(chan *logparser.Result, fileCount)
+	// ジョブチャネルは小さいバッファで十分
+	jobs := make(chan string, numWorkers)
+	// 結果用にはファイル数分のバッファを使用
+	results := make(chan *OptimizedResult, fileCount)
 
 	var wg sync.WaitGroup
 
@@ -71,22 +80,21 @@ func processFiles(root *os.Root, files []string, numWorkers int) []*logparser.Re
 		})
 	}
 
-	// ジョブを供給（バッファ付きチャネルでノンブロッキング）
-	go func() {
-		for _, filename := range files {
-			jobs <- filename
-		}
-		close(jobs)
-	}()
+	// 不要なgoroutineを削除して直接ジョブを送信
+	// メインgoroutineからブロッキング送信（チャネルがバッファ付きなので問題なし）
+	for _, filename := range files {
+		jobs <- filename
+	}
+	close(jobs)
 
-	// 全てのワーカーが完了するのを待つ
+	// 全てのワーカーが完了したら結果チャネルを閉じる
 	go func() {
 		wg.Wait()
 		close(results)
 	}()
 
 	// 正確な容量で結果スライスを事前割り当て
-	resultList := make([]*logparser.Result, 0, fileCount)
+	resultList := make([]*OptimizedResult, 0, fileCount)
 	for result := range results {
 		resultList = append(resultList, result)
 	}
@@ -95,21 +103,26 @@ func processFiles(root *os.Root, files []string, numWorkers int) []*logparser.Re
 }
 
 // processFile は1つのログファイルを解析します
-func processFile(root *os.Root, filename string) (*logparser.Result, error) {
+func processFile(root *os.Root, filename string) (*OptimizedResult, error) {
 	file, err := root.Open(filename)
 	if err != nil {
 		return nil, err
 	}
 	defer file.Close()
 
-	result := &logparser.Result{
-		FileName:     filename,
-		StatusCounts: make(map[int]int),
+	result := &OptimizedResult{
+		FileName: filename,
+		// StatusCounts array is zero-initialized
 	}
 
-	decoder := json.NewDecoder(file)
+	// 256KBのバッファでI/O効率を向上
+	bufferedReader := bufio.NewReaderSize(file, 256*1024)
+	// sonic JSONデコーダーを使用（標準ライブラリより2-5倍高速）
+	decoder := sonic.ConfigDefault.NewDecoder(bufferedReader)
+
+	// LogEntryを再利用してアロケーションを削減
+	var entry logparser.LogEntry
 	for decoder.More() {
-		var entry logparser.LogEntry
 		if err := decoder.Decode(&entry); err != nil {
 			continue
 		}
@@ -121,14 +134,16 @@ func processFile(root *os.Root, filename string) (*logparser.Result, error) {
 }
 
 // printResults は処理結果を表示します
-func printResults(results []*logparser.Result, elapsed time.Duration) {
+func printResults(results []*OptimizedResult, elapsed time.Duration) {
 	totalRequests := 0
-	totalStatusCounts := make(map[int]int)
+	var totalStatusCounts [600]int
 
 	for _, result := range results {
 		totalRequests += result.TotalCount
-		for status, count := range result.StatusCounts {
-			totalStatusCounts[status] += count
+		for status := 0; status < 600; status++ {
+			if count := result.StatusCounts[status]; count > 0 {
+				totalStatusCounts[status] += count
+			}
 		}
 	}
 
@@ -138,7 +153,7 @@ func printResults(results []*logparser.Result, elapsed time.Duration) {
 	fmt.Printf("\nステータスコード別:\n")
 	for status := 200; status <= 599; status += 100 {
 		for s := status; s < status+100; s++ {
-			if count, ok := totalStatusCounts[s]; ok {
+			if count := totalStatusCounts[s]; count > 0 {
 				percentage := float64(count) / float64(totalRequests) * 100
 				fmt.Printf("  %d: %s件 (%.2f%%)\n", s, formatNumber(count), percentage)
 			}
@@ -146,10 +161,8 @@ func printResults(results []*logparser.Result, elapsed time.Duration) {
 	}
 
 	errorCount := 0
-	for status, count := range totalStatusCounts {
-		if status >= 400 {
-			errorCount += count
-		}
+	for status := 400; status < 600; status++ {
+		errorCount += totalStatusCounts[status]
 	}
 	errorRate := float64(errorCount) / float64(totalRequests) * 100
 	fmt.Printf("\nエラー率 (4xx, 5xx): %.2f%%\n", errorRate)
