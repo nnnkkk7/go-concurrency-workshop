@@ -3,8 +3,8 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"os"
-	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -16,25 +16,25 @@ import (
 func main() {
 	startTime := time.Now()
 
-	logDir := findLogDir()
-
-	logRoot, err := os.OpenRoot(logDir)
+	logRoot, err := os.OpenRoot("./logs")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error opening log directory: %v\n", err)
 		os.Exit(1)
 	}
 	defer logRoot.Close()
 
-	pattern := filepath.Join(logDir, "access_*.json")
-	fullPaths, err := filepath.Glob(pattern)
+	entries, err := fs.ReadDir(logRoot.FS(), ".")
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error finding log files: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error reading log directory: %v\n", err)
 		os.Exit(1)
 	}
 
-	files := make([]string, len(fullPaths))
-	for i, path := range fullPaths {
-		files[i] = filepath.Base(path)
+	files := make([]string, 0, len(entries))
+	for _, entry := range entries {
+		name := entry.Name()
+		if !entry.IsDir() && strings.HasPrefix(name, "access_") && strings.HasSuffix(name, ".json") {
+			files = append(files, name)
+		}
 	}
 
 	numWorkers := runtime.NumCPU()
@@ -144,29 +144,16 @@ func formatNumber(n int) string {
 	return result
 }
 
-// findLogDir はログディレクトリのパスを見つけます
-func findLogDir() string {
-	if _, err := os.Stat("./logs"); err == nil {
-		return "./logs"
-	}
-	if _, err := os.Stat("../../logs"); err == nil {
-		return "../../logs"
-	}
-	return "./logs"
-}
-
 // recordResult は実行時間をworkshop/results.txtに記録します
 func recordResult(phase string, elapsed time.Duration) {
-	const resultsPath = "./workshop/results.txt"
-
 	// 既存の結果を読み込む（なければ空のマップ）
-	results := loadResults(resultsPath)
+	results := loadResults("./workshop/results.txt")
 
 	// 現在のフェーズの結果を更新（冪等操作）
 	results[phase] = elapsed.Seconds()
 
 	// ファイルに書き戻す（全体を上書き）
-	if err := saveResults(resultsPath, results); err != nil {
+	if err := saveResults("./workshop/results.txt", results); err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: Failed to save results: %v\n", err)
 	}
 }
