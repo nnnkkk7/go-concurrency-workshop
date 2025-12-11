@@ -23,11 +23,9 @@
 
 ```
 go-concurrency-workshop/
-├── cmd/
-│   └── loggen/          # ログ生成ツール
-├── pkg/
-│   └── logparser/       # ログパース共通処理
-├── workshop/            # 実装用: シンプルなTODOのみ
+├── cmd/loggen/          # ログ生成ツール
+├── pkg/logparser/       # ログパース共通処理
+├── workshop/            # 実装用
 │   ├── phase1/
 │   ├── phase2/
 │   ├── phase3/
@@ -38,8 +36,6 @@ go-concurrency-workshop/
 │   ├── phase3/
 │   └── phase4/
 ├── docs/                # ドキュメント
-│   ├── HINTS.md         # レベル別ヒント集
-│   └── SLIDES.md
 └── logs/                # 生成されたログファイル
 ```
 
