@@ -13,7 +13,7 @@ import (
 func main() {
 	startTime := time.Now()
 
-	logDir := "../../logs"
+	logDir := findLogDir()
 
 	logRoot, err := os.OpenRoot(logDir)
 	if err != nil {
@@ -135,4 +135,15 @@ func formatNumber(n int) string {
 		result += string(c)
 	}
 	return result
+}
+
+// findLogDir はログディレクトリのパスを見つけます
+func findLogDir() string {
+	if _, err := os.Stat("./logs"); err == nil {
+		return "./logs"
+	}
+	if _, err := os.Stat("../../logs"); err == nil {
+		return "../../logs"
+	}
+	return "./logs"
 }
