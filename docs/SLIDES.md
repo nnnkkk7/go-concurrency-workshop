@@ -96,8 +96,8 @@ paginate: true
 
 | 時間 | 内容 |
 |------|------|
-| 00:00-00:25 | この講義 |
-| 00:25-00:37 | Phase 1(逐次処理) |
+| 00:00-00:32 | この講義 |
+| 00:32-00:37 | Phase 1(逐次処理) |
 | 00:37-00:52 | Phase 2(並行処理1) |
 | 00:52-01:05 | Phase 3(並行処理2) |
 | 01:05-01:20 | Phase 4(さらなる高速化) |
@@ -110,7 +110,7 @@ paginate: true
 
 「このログ、急ぎで解析して」
 
-- 50ファイル × 67,000行 = 335万行
+- 200ファイル × 50,000行 ≈ 1,000万行
 - ステータスコード別にカウントしたい
 
 ---
@@ -123,11 +123,7 @@ for _, file := range files {
 }
 ```
 
-50ファイルを1つずつ処理 → 1ファイルあたり1秒かかるとすると → 約50秒かかる
-
----
-
-## なぜ遅いのか
+200ファイルを1つずつ処理。
 
 ```
 時間 →
@@ -151,7 +147,7 @@ CPUは暇な時間が多い。ファイルI/Oの待ち時間がもったいな�
     ...
 ```
 
-複数のファイルを同時に処理 → 数秒で終わるはず。。
+複数のファイルを同時に処理
 
 この仕組みを理解して実装する。
 
@@ -175,7 +171,7 @@ CPUは暇な時間が多い。ファイルI/Oの待ち時間がもったいな�
 
 Goランタイムが管理する軽量なスレッド。
 
-普通の関数呼び出しは、その関数が終わるまで次に進めない(同期実行)。
+普通の関数呼び出しは、その関数が終わるまで次に進めないが、(同期実行)。
 goroutine を使うと、関数を別の実行フローで動かし、呼び出し元は待たずに次の処理に進める(非同期実行)。
 
 参考: [A Tour of Go - Goroutines](https://go.dev/tour/concurrency/1)
@@ -215,19 +211,12 @@ func main() {
 
 ## goroutine が軽い理由
 
-OSスレッド(従来の並行処理)
-
-- スタックサイズ: Linux 2〜8MB / macOS 512KB / Windows 1MB
-- OSが管理するので切り替えコストが高い
-
-goroutine(Goの並行処理)
-
 - 初期スタックサイズ: わずか2KB(Go 1.4以降)
 - Goランタイムが管理、必要に応じて動的に拡張・縮小
 - 最大: 64bit 1GB / 32bit 250MB
 - 数千〜数万個でも問題なく動く
 
- 参考: [Go runtime/stack.go](https://go.dev/src/runtime/stack.go) | [What is a goroutine? And what is their size?](https://tpaschalis.me/goroutines-size/) | [Cloudflare: How Stacks are Handled in Go](https://blog.cloudflare.com/how-stacks-are-handled-in-go/)
+ 参考: [What is a goroutine? And what is their size?](https://tpaschalis.me/goroutines-size/) | [Cloudflare: How Stacks are Handled in Go](https://blog.cloudflare.com/how-stacks-are-handled-in-go/)
 
 ---
 
@@ -244,7 +233,7 @@ func main() {
 出力: 何も表示されない
 
 main関数が終わると、プログラム全体が終了する。
-goroutine が処理中でも、容赦なく終了する。
+goroutine が処理中でも、終了する。
 
 ---
 
@@ -262,7 +251,7 @@ main は goroutine の完了を待っていない。
 
 ---
 
-## 解決: sync.WaitGroup
+## sync.WaitGroup
 
 「全部終わるまで待つ」ための仕組み。
 内部にカウンタを持っていて、0になるまで待機できる。
@@ -292,7 +281,7 @@ wg.Wait()  // カウンタが0になるまでここで待つ
 
 ---
 
-## カウンタの動きを追う
+## カウンタの動き
 
 ```go
 var wg sync.WaitGroup        // カウンタ: 0
@@ -316,16 +305,16 @@ var wg sync.WaitGroup
 
 for _, file := range files {
     wg.Add(1)  // ループごとにカウンタ+1
-    go func(f string) {
+    go func() {
         defer wg.Done()  // 終わったらカウンタ-1
-        processFile(f)
-    }(file)
+        processFile(file)
+    }()
 }
 
 wg.Wait()  // 全部終わるまで待つ
 ```
 
-50ファイルなら、カウンタは 0→1→2→...→50→49→...→0 と動く。
+200ファイルなら、カウンタは 0→1→2→...→200→199→...→0 と動く。
 
 ---
 
@@ -338,13 +327,10 @@ go func() {
 }()
 ```
 
-`defer` は「この関数が終わるとき(正常でもpanicでも)に実行」という意味。
+`defer` は「この関数を抜ける直前に（正常終了でも panic でも）登録した呼び出しを実行する」キーワード。引数の評価は `defer` を書いた時点で行われる。
 
 processFile でエラーが起きても、Done() は必ず呼ばれる。
 カウンタが減らないまま残る事故を防げる。
-
-**補足:** 複数の defer がある場合、後から defer したものが先に実行される(LIFO)。
-panic 時も defer は実行されるため、確実なクリーンアップが可能。
 
 参考: [Go Blog - Defer, Panic, and Recover](https://go.dev/blog/defer-panic-and-recover)
 
@@ -372,26 +358,20 @@ wg.Go(func() {
 })
 ```
 
-`WaitGroup.Go()` は内部で `Add(1)` と `defer Done()` を自動で行う。
+`WaitGroup.Go()` は内部で `Add(1)` と `defer Done()` を実行している。
 
 ---
 
 ## WaitGroup.Go() の利点
 
-1つ目: Add/Done の書き忘れを防ぐ
+1. Add/Done の書き忘れを防ぐ
 
 - 手動で Add(1) を書く必要がない
 - defer wg.Done() も不要
 
-2つ目: コードが簡潔になる
+2. コードが簡潔になる
 
-- ボイラープレートが減る
 - 読みやすく、ミスも減る
-
-3つ目: 安全性が向上
-
-- Add と Done の数が必ず一致する
-- デッドロックのリスクが減る
 
  参考: [WaitGroup.Go - pkg.go.dev](https://pkg.go.dev/sync#WaitGroup.Go) | [Go 1.25 Release Notes](https://go.dev/doc/go1.25)
 
@@ -428,10 +408,10 @@ goroutine で処理を並行化できた。
 
 ```go
 for _, file := range files {
-    go func(f string) {
-        result := processFile(f)
+    go func() {
+        result := processFile(file)
         // この result をどこに返す?
-    }(file)
+    }()
 }
 // ここで全ファイルの結果を集計したい
 ```
@@ -451,7 +431,7 @@ goroutine 同士がデータをやり取りするための「通り道」。
 
 一方が値を送り、もう一方が値を受け取る。
 
-Go 言語仕様では「並行実行される関数が、指定された型の値を送受信することで通信するための仕組み」と定義されている。デフォルトでは、送信と受信は両方の準備ができるまでブロックされる。
+Go 言語仕様では「並行実行される関数が、指定された型の値を送受信することで通信するための仕組み」と定義されている。
 
 参考: [Go言語仕様 - Channel types](https://go.dev/ref/spec#Channel_types) | [Effective Go - Channels](https://go.dev/doc/effective_go#channels) | [Go by Example - Channels](https://gobyexample.com/channels)
 
@@ -470,7 +450,7 @@ ch <- 42
 value := <-ch
 ```
 
-`<-` は矢印だと思えばいい。データの流れる向きを表している。
+`<-` はデータの流れる向きを表している。
 
  参考: [Go Spec - Channel types](https://go.dev/ref/spec#Channel_types) | [Go Spec - Send statements](https://go.dev/ref/spec#Send_statements) | [Go Spec - Receive operator](https://go.dev/ref/spec#Receive_operator)
 
@@ -497,15 +477,12 @@ fmt.Println(value)  // 42
 
 「ブロック」= goroutine が一時停止する状態
 
-プログラムの実行が「その場で止まる」こと:
+プログラムの実行が「その場で止まる」こと
 
 - その行で待機する
 - 次の行には進めない
 - 条件が満たされるまで待ち続ける
 
-まるで「信号待ち」のような状態
-
-重要: ブロックは**エラーではない**、Go の正常な動作
 
 ---
 
@@ -513,7 +490,7 @@ fmt.Println(value)  // 42
 
 バッファなしの channel で送信すると、受信側が現れるまで**ブロック**
 
-送信側 goroutine の状態変化:
+送信側 goroutine の状態変化
 
 1. 実行中: `ch <- 42` を実行しようとする
 2. **ブロック開始**: 受信側がいない → この場で停止
@@ -537,7 +514,7 @@ goroutine は止まっているが、プログラム全体は動いている
 
 受信も同様にブロックする(送信側が現れるまで)
 
-受信側 goroutine の状態変化:
+受信側 goroutine の状態変化
 
 1. 実行中: `<-ch` を実行しようとする
 2. **ブロック開始**: 送信側がいない → この場で停止
@@ -558,7 +535,7 @@ func main() {
 
 channel は「データの受け渡し場所」ではなく「待ち合わせ場所」
 
-ブロックの3つの役割:
+ブロックの3つの役割
 
 1つ目: 同期を取る
 
@@ -584,6 +561,17 @@ channel は「データの受け渡し場所」ではなく「待ち合わせ場
 
 ブロックがあるから、安全な並行処理ができる
 
+---
+
+## 補足: channelのブロック挙動
+
+| 状態 | いつブロックするか | いつブロックしないか |
+| --- | --- | --- |
+| バッファなし | 送り手と受け手のどちらかが不在 | 双方が揃った瞬間に進む |
+| バッファあり | 送信: 満杯 / 受信: 空 | 送信: 空きあり / 受信: データあり |
+| nil channel | 送受信どちらも永遠にブロック | なし（初期化漏れ注意） |
+| close済み | 送信はpanic | 受信は即時にゼロ値・ok=false、rangeは即終了 |
+
  参考: [Go Spec - Channel types](https://go.dev/ref/spec#Channel_types) | [Go Memory Model](https://go.dev/ref/mem) | [Gist of Go: Channels](https://antonz.org/go-concurrency/channels/)
 
 ---
@@ -595,9 +583,9 @@ results := make(chan Result)
 
 // 各ファイルを goroutine で処理
 for _, file := range files {
-    go func(f string) {
-        results <- processFile(f)  // 結果を送信
-    }(file)
+    go func() {
+        results <- processFile(file)  // 結果を送信
+    }()
 }
 
 // 結果を受け取って集計
@@ -710,13 +698,13 @@ func main() {
 
 ```go
 for _, file := range files {
-    go func(f string) {
-        results <- processFile(f)
-    }(file)
+    go func() {
+        results <- processFile(file)
+    }()
 }
 ```
 
-50ファイルなら50個の goroutine が同時に動く。
+200ファイルなら200個の goroutine が同時に動く。
 これは問題ないが、5000ファイルだったら?
 
 ---
@@ -727,19 +715,14 @@ goroutine は軽量だが、無制限に作ると問題が起きる
 
 - メモリ消費
     - 1個あたり約2.7KB使う(最初は2KBだが、実際は少し増える)
-    - 例: 5000個なら約13MB、100万個なら約2.6GB
     - 大量に作ると、メモリが足りなくなる可能性
 
 
 - ファイルを同時に開ける数に上限がある
     - OS には「一度に開けるファイル数」の制限がある
-    - macOS: 256個まで / Linux: 1024個まで(デフォルト)
-    - 確認方法: ターミナルで `ulimit -n` を実行
-    - 50ファイルなら問題ないが、5000ファイルだと上限に引っかかる
 
 - CPU で同時に動けるのは限られている
-    - 8コアのマシンで5000個の goroutine を起動しても
-    - 実際に CPU 上で同時に実行されるのは最大8個だけ
+    - 8コアのマシンで5000個の goroutine を起動しても実際に CPU 上で同時に実行されるのは最大8個だけ
     - 残りは順番待ち(切り替えながら実行)
     - 切り替えの処理にもコストがかかる
 
@@ -845,9 +828,7 @@ close は「もう値を送らない」という合図
 close(jobs)  // jobsチャネルを閉じる
 ```
 
-**close は送信側だけが実行すべき、受信側は禁止**
-
-- ✓ 送信側(書き込む側)だけがcloseできる
+- ✓ 送信側(書き込む側)だけがcloseすべき
 - ✗ 受信側(読み込む側)はcloseしてはいけない
 - ✓ channelは1回だけcloseできる(2回目はpanic)
 
@@ -855,13 +836,13 @@ close(jobs)  // jobsチャネルを閉じる
 
 ## close すると何が起きる?
 
-送信側(main)
+1. 送信側(main)
 
 - `close(jobs)` を呼ぶ
 - これ以降、送信できなくなる
 - 送信すると → panic 発生
 
-受信側(ワーカー)
+2. 受信側(ワーカー)
 
 - `for file := range jobs` が終了条件を検知
 - バッファに残っている値は全て処理できる
@@ -961,7 +942,7 @@ results := make(chan Result, len(files))   // バッファあり
 バッファがないと:
 
 - 送信のたびにワーカーが受け取るまで待つ
-- 50ファイルなら50回ブロック
+- 200ファイルなら200回ブロック
 - 非効率
 
 バッファがあると:
@@ -1705,35 +1686,23 @@ URL Generator → Worker Pool(Fan-out) → 結果収集(Fan-in)
 
 ---
 
-## 今日のハンズオンで使うパターン
-
-Phase 2: Fan-out + 結果収集
-- goroutine を起動して channel で結果を集める
-
-Phase 3: Worker Pool
-- 固定数のワーカーで同時実行数を制御
-
-余裕があれば context でキャンセル対応を入れてみよう。
-
----
-
 # ハンズオン
 
 ---
 
 ## 4つの Phase
 
-Phase 1(12分) 逐次処理
-　goroutine 禁止、まず動くものを作る → 基準タイム
+Phase 1 逐次処理
+　goroutineを使わずに、まず動くものを作る → 基準タイム
 
-Phase 2(15分) 並行処理
-　goroutine + channel 解禁、5〜10倍を目指す
+Phase 2 並行処理
+　goroutine + channel を使う。
 
-Phase 3(13分) ワーカープール
-　固定数のgoroutineで処理、Go 1.25の WaitGroup.Go() を活用
+Phase 3 ワーカープール
+　固定数のgoroutineで処理。(Go 1.25の WaitGroup.Go() を活用)
 
-Phase 4(15分) さらなる高速化
-　制約なし、あらゆる最適化手法にチャレンジ
+Phase 4 さらなる高速化
+　制約なし
 
  参考: [Go 1.25 Release Notes](https://go.dev/doc/go1.25) | [WaitGroup.Go - pkg.go.dev](https://pkg.go.dev/sync#WaitGroup.Go)
 
