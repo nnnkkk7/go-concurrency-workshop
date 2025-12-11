@@ -15,11 +15,76 @@ paginate: true
 ## 目次
 
 1. [はじめに](#はじめに)
+   - [タイムスケジュール](#タイムスケジュール)
+   - [お題](#お題)
+   - [逐次処理だと](#逐次処理だと)
+   - [なぜ遅いのか](#なぜ遅いのか)
+   - [並行処理なら](#並行処理なら)
 2. [goroutine](#goroutine)
+   - [goroutine とは](#goroutine-とは)
+   - [go キーワード](#go-キーワード)
+   - [何が起きているのか](#何が起きているのか)
+   - [goroutine が軽い理由](#goroutine-が軽い理由)
+   - [問題: main が先に終わる](#問題-main-が先に終わる)
+   - [図で見ると](#図で見ると)
+   - [解決: sync.WaitGroup](#解決-syncwaitgroup)
+   - [WaitGroup の使い方](#waitgroup-の使い方)
+   - [カウンタの動きを追う](#カウンタの動きを追う)
+   - [複数の goroutine を待つ](#複数の-goroutine-を待つ)
+   - [なぜ defer を使うのか](#なぜ-defer-を使うのか)
+   - [Go 1.25: WaitGroup.Go()](#go-125-waitgroupgo)
+   - [WaitGroup.Go() の利点](#waitgroupgo-の利点)
+   - [ロジックは分けておく](#ロジックは分けておく)
 3. [channel](#channel)
+   - [新しい問題](#新しい問題)
+   - [channel とは](#channel-とは)
+   - [channel の作り方と使い方](#channel-の作り方と使い方)
+   - [送信と受信の対応](#送信と受信の対応)
+   - [ブロックとは?](#ブロックとは)
+   - [送信時のブロック](#送信時のブロック)
+   - [受信時のブロック](#受信時のブロック)
+   - [なぜブロックするのか](#なぜブロックするのか)
+   - [結果を集める](#結果を集める)
+   - [流れを図で見る](#流れを図で見る)
+   - [このパターンのポイント](#このパターンのポイント)
+   - [ハマりどころ: デッドロック](#ハマりどころ-デッドロック)
+   - [なぜデッドロックになるのか](#なぜデッドロックになるのか)
+   - [解決策: 送信と受信を別の goroutine で](#解決策-送信と受信を別の-goroutine-で)
+   - [デッドロックを防ぐコツ](#デッドロックを防ぐコツ)
 4. [ワーカープール](#ワーカープール)
+   - [Phase 2 の方法の問題点](#phase-2-の方法の問題点)
+   - [大量の goroutine の問題](#大量の-goroutine-の問題)
+   - [ワーカープールの考え方](#ワーカープールの考え方)
+   - [ワーカープールの実装(前半)](#ワーカープールの実装前半)
+   - [for range channel の動き](#for-range-channel-の動き)
+   - [ワーカープールの実装(後半)](#ワーカープールの実装後半)
+   - [close の役割](#close-の役割)
+   - [close すると何が起きる?](#close-すると何が起きる)
+   - [close を忘れるとどうなる?](#close-を忘れるとどうなる)
+   - [バッファなし channel の動き](#バッファなし-channel-の動き)
+   - [バッファ付き channel の動き](#バッファ付き-channel-の動き)
+   - [バッファあり/なし の使い分け](#バッファありなし-の使い分け)
+   - [ワーカープールでバッファを使う理由](#ワーカープールでバッファを使う理由)
+   - [ワーカープールのポイント](#ワーカープールのポイント)
 5. [並行処理パターン集](#並行処理パターン集)
+   - [なぜパターンを学ぶのか](#なぜパターンを学ぶのか)
+   - [パターン1: Generator](#パターン1-generator)
+   - [パターン2: Pipeline](#パターン2-pipeline)
+   - [パターン3: Fan-out / Fan-in](#パターン3-fan-out--fan-in)
+   - [パターン4: select](#パターン4-select)
+   - [パターン5: Done Channel(キャンセル)](#パターン5-done-channelキャンセル)
+   - [パターン6: Timeout](#パターン6-timeout)
+   - [パターン7: Semaphore](#パターン7-semaphore)
+   - [パターン8: Rate Limiting](#パターン8-rate-limiting)
+   - [パターン9: context.Context](#パターン9-contextcontext)
+   - [パターンの選び方](#パターンの選び方)
+   - [やりたいこと → パターン対応表](#やりたいこと--パターン対応表)
+   - [実務での組み合わせ例](#実務での組み合わせ例)
+   - [パターン選択のコツ](#パターン選択のコツ)
+   - [今日のハンズオンで使うパターン](#今日のハンズオンで使うパターン)
 6. [ハンズオン](#ハンズオン)
+   - [4つの Phase](#4つの-phase)
+   - [ルール](#ルール)
 
 ---
 
@@ -50,7 +115,7 @@ paginate: true
 
 ---
 
-## 逐次処理だと
+## 逐次処理
 
 ```go
 for _, file := range files {
@@ -86,9 +151,19 @@ CPUは暇な時間が多い。ファイルI/Oの待ち時間がもったいな�
     ...
 ```
 
-複数のファイルを同時に処理 → 数秒で終わる
+複数のファイルを同時に処理 → 数秒で終わるはず。。
 
 この仕組みを理解して実装する。
+
+ただし、
+
+- **並行処理は常に速くなるわけではない**
+- goroutine の作成・管理にもコストがかかる
+- 処理が小さすぎると、オーバーヘッドの方が大きくなる
+- goroutineを大量に作りすぎると、メモリやCPUの負荷が増える
+- 適切な並行化の設計が重要
+
+ 参考: [Goroutines in Go - GetStream](https://getstream.io/blog/goroutines-go-concurrency-guide/) | [Go Concurrency Patterns](https://ggbaker.ca/prog-langs/content/go-concurrency.html)
 
 ---
 
@@ -98,10 +173,12 @@ CPUは暇な時間が多い。ファイルI/Oの待ち時間がもったいな�
 
 ## goroutine とは
 
-Go が提供する「軽量な実行単位」のこと。
+Goランタイムが管理する軽量なスレッド。
 
-普通の関数呼び出しは、その関数が終わるまで次に進めない。
-goroutine を使うと、関数の完了を待たずに次の処理に進める。
+普通の関数呼び出しは、その関数が終わるまで次に進めない(同期実行)。
+goroutine を使うと、関数を別の実行フローで動かし、呼び出し元は待たずに次の処理に進める(非同期実行)。
+
+参考: [A Tour of Go - Goroutines](https://go.dev/tour/concurrency/1)
 
 ---
 
@@ -266,6 +343,11 @@ go func() {
 processFile でエラーが起きても、Done() は必ず呼ばれる。
 カウンタが減らないまま残る事故を防げる。
 
+**補足:** 複数の defer がある場合、後から defer したものが先に実行される(LIFO)。
+panic 時も defer は実行されるため、確実なクリーンアップが可能。
+
+参考: [Go Blog - Defer, Panic, and Recover](https://go.dev/blog/defer-panic-and-recover)
+
 ---
 
 ## Go 1.25: WaitGroup.Go()
@@ -368,6 +450,10 @@ goroutine 同士がデータをやり取りするための「通り道」。
 ```
 
 一方が値を送り、もう一方が値を受け取る。
+
+Go 言語仕様では「並行実行される関数が、指定された型の値を送受信することで通信するための仕組み」と定義されている。デフォルトでは、送信と受信は両方の準備ができるまでブロックされる。
+
+参考: [Go言語仕様 - Channel types](https://go.dev/ref/spec#Channel_types) | [Effective Go - Channels](https://go.dev/doc/effective_go#channels) | [Go by Example - Channels](https://gobyexample.com/channels)
 
 ---
 
@@ -679,6 +765,14 @@ goroutine は軽量だが、無制限に作ると問題が起きる
                ↓
          results channel
 ```
+
+- 5000ファイルでも、ワーカーは8個だけ(CPU コア数分)
+- 各ワーカーは jobs から順番に仕事を取る
+- 全員が同じ jobs channel を見ている
+
+このパターンは Go の並行処理パターンで **Fan-out** と呼ばれる。複数の関数(ワーカー)が同じ channel から読み取ることで、作業を分散し CPU と I/O を並列化できる。
+
+参考: [Go Blog: Pipelines and cancellation](https://go.dev/blog/pipelines) | [Go by Example: Worker Pools](https://gobyexample.com/worker-pools)
 
 ---
 
