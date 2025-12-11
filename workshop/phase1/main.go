@@ -20,7 +20,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	results := processFilesSequentially(files)
+	results := processFiles(files)
 
 	printResults(results, time.Since(startTime))
 }
@@ -29,7 +29,7 @@ func main() {
 // TODO: この関数を実装してください
 // ============================================================
 // HINT: シンプルなfor文で各ファイルを順番に処理します
-func processFilesSequentially(files []string) []*logparser.Result {
+func processFiles(files []string) []*logparser.Result {
 	// TODO: ここに実装を書いてください
 	return nil
 }

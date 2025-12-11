@@ -2,6 +2,15 @@
 
 このディレクトリは、ワークショップ参加者が実際にコードを書いて学ぶための作業スペースです。
 
+## 前提条件
+
+ワークショップを始める前に、[docs/SETUP_CHECK.md](../docs/SETUP_CHECK.md) のチェックリストを完了してください。
+
+特に以下を確認：
+- Go 1.25以降がインストールされている
+- ログファイル（50個、約500MB）が生成済み
+- スターターコードが正常に動作する
+
 ##  ディレクトリ構成
 
 ```
@@ -16,60 +25,53 @@ workshop/
     └── main.go    # Phase 4: さらなる高速化に挑戦
 ```
 
-各Phaseは独立したディレクトリになっているため、**前のPhaseのコードを残したまま次のPhaseに進める**ようになっています。
 
 ##  使い方
 
-### Phase 1: 逐次処理版（15分）
+### Phase 1: 逐次処理版
 
 ```bash
 # リポジトリのルートから実行
 go run ./workshop/phase1/main.go
 ```
 
-**実装する関数：** `processFilesSequentially()`
-
-### Phase 2: 並行処理版（20分）
+### Phase 2: 並行処理版
 
 ```bash
 # リポジトリのルートから実行
 go run ./workshop/phase2/main.go
 ```
 
-**実装する関数：** `processFilesConcurrently()`
 
-### Phase 3: ワーカープール版（17分）
+### Phase 3: ワーカープール版
 
 ```bash
 # リポジトリのルートから実行
 go run ./workshop/phase3/main.go
 ```
 
-**実装する関数：** `processFilesWithWorkerPool()`
 
-### Phase 4: さらなる高速化（自由課題）
+### Phase 4: さらなる高速化
 
 ```bash
 # リポジトリのルートから実行
 go run ./workshop/phase4/main.go
 ```
 
-**実装する関数：** `processFiles()`
 
-**目標：** Phase 3よりもさらに高速化する
-**制約：** なし（あらゆる最適化手法を試してください）
+Phase 3よりもさらに高速化する。あらゆる最適化手法を試してください。
 
 ##  ヒントが必要な場合
 
-詰まったときは以下を参照してください：
+詰まったときは以下を参照してください。
 
-- **[hint/](../hint/)** - より詳細なTODOコメント付きのコード
-- **[docs/HINTS.md](../docs/HINTS.md)** - レベル別のヒント集
+- **[docs/HINTS.md](../docs/HINTS.md)** - ヒント
 - **[solutions/](../solutions/)** - 模範解答
+
 
 ##  パフォーマンス測定
 
-各Phaseの処理時間を記録しましょう：
+各Phaseの処理時間を記録しましょう。
 
 ```
 Phase 1: _____ 秒（基準値）
@@ -77,12 +79,5 @@ Phase 2: _____ 秒（改善率: _____倍）
 Phase 3: _____ 秒（改善率: _____倍）
 Phase 4: _____ 秒（改善率: _____倍）
 ```
-
-##  目標
-
-- Phase 1をベースラインとして処理時間を計測
-- Phase 2で5〜10倍の高速化を実現
-- Phase 3でより安定した性能を実現
-- Phase 4でPhase 3を超える最適化に挑戦
 
 頑張ってください！ 

@@ -20,7 +20,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	results := processFilesConcurrently(files)
+	results := processFiles(files)
 
 	printResults(results, time.Since(startTime))
 }
@@ -29,7 +29,7 @@ func main() {
 // TODO: この関数を実装してください
 // ============================================================
 // ヒント: goroutineとchannelを使って並行処理を実現します
-func processFilesConcurrently(files []string) []*logparser.Result {
+func processFiles(files []string) []*logparser.Result {
 	// まずは逐次処理版（Phase 1と同じ）
 	results := make([]*logparser.Result, 0, len(files))
 	for _, filename := range files {
