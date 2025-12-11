@@ -97,8 +97,7 @@ paginate: true
 | 00:32-00:37 | Phase 1(逐次処理) |
 | 00:37-00:52 | Phase 2(並行処理1) |
 | 00:52-01:05 | Phase 3(並行処理2) |
-| 01:05-01:20 | Phase 4(さらなる高速化) |
-| 01:20-01:25 | 最終計測 |
+| 01:05-01:25 | Phase 4(さらなる高速化) |
 | 01:25-01:30 | 結果発表 |
 
 ---
@@ -130,7 +129,7 @@ for _, file := range files {
          file2は待っている
 ```
 
-CPUは暇な時間が多い。ファイルI/Oの待ち時間がもったいない。
+CPUは暇な時間が多い。ファイルI/Oの待ち時間がもったいない。。。
 
 ---
 
@@ -144,19 +143,23 @@ CPUは暇な時間が多い。ファイルI/Oの待ち時間がもったいな�
     ...
 ```
 
-複数のファイルを同時に処理
+並行と並列は異なる
 
-この仕組みを理解して実装する。
+- 並行(concurrency): 「同時に進んでいるように見せる」。1コアでもタスク切替で複数の仕事を前に進める。  
+  “Concurrency is about dealing with lots of things at once.” — Rob Pike, 2012
+- 並列(parallelism): 「物理的に同時に走る」。複数コア/CPU上で本当に同時実行する。  
+  “Parallelism is about doing lots of things at once.” — Rob Pike, 2012
 
-ただし、
 
-- **並行処理は常に速くなるわけではない**
-- goroutine の作成・管理にもコストがかかる
-- 処理が小さすぎると、オーバーヘッドの方が大きくなる
-- goroutineを大量に作りすぎると、メモリやCPUの負荷が増える
-- 適切な並行化の設計が重要
+この仕組みを理解して実装する。ただし、
 
- 参考: [Goroutines in Go - GetStream](https://getstream.io/blog/goroutines-go-concurrency-guide/) | [Go Concurrency Patterns](https://ggbaker.ca/prog-langs/content/go-concurrency.html)
+- **並行化しても必ず速くなるわけではない**（I/O待ちを隠せるか、CPUが十分かで決まる）
+- goroutine の作成・スケジューリングにもコストがかかる
+- 処理が小さすぎると、オーバーヘッドの方が大きい
+- goroutine を大量に作りすぎると、メモリやCPUの負荷が増える
+- 適切な分割と並列度の設計が重要
+
+  参考: [Rob Pike - Concurrency is not Parallelism (2012)](https://go.dev/blog/waza-talk) | [Goroutines in Go - GetStream](https://getstream.io/blog/goroutines-go-concurrency-guide/) | [Go Concurrency Patterns](https://ggbaker.ca/prog-langs/content/go-concurrency.html)
 
 ---
 
@@ -210,7 +213,6 @@ func main() {
 
 - 初期スタックサイズ: わずか2KB(Go 1.4以降)
 - Goランタイムが管理、必要に応じて動的に拡張・縮小
-- 最大: 64bit 1GB / 32bit 250MB
 - 数千〜数万個でも問題なく動く
 
  参考: [What is a goroutine? And what is their size?](https://tpaschalis.me/goroutines-size/) | [Cloudflare: How Stacks are Handled in Go](https://blog.cloudflare.com/how-stacks-are-handled-in-go/)
