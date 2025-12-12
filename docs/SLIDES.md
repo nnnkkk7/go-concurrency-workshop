@@ -793,7 +793,7 @@ goroutine は軽量だが、無制限に作ると問題が起きる
 - 各ワーカーは jobs から順番に仕事を取る
 - 全員が同じ jobs channel を見ている
 
-このパターンは Go の並行処理パターンで **Fan-out** と呼ばれる。複数の関数(ワーカー)が同じ channel から読み取ることで、作業を分散し CPU と I/O を並列化できる。
+このパターンは Go の並行処理パターンで **Fan-out** と呼ばれる。複数の関数(ワーカー)が同じ channel から読み取ることで、作業を分散してスループットを上げられる（CPUを並列に使い、I/O待ちを重ねられる場合がある）。
 
 参考: [Go Blog: Pipelines and cancellation](https://go.dev/blog/pipelines) | [Go by Example: Worker Pools](https://gobyexample.com/worker-pools)
 
@@ -802,7 +802,7 @@ goroutine は軽量だが、無制限に作ると問題が起きる
 ## ワーカープールの実装(前半)
 
 ```go
-numWorkers := runtime.NumCPU()  // CPUコア数
+numWorkers := runtime.GOMAXPROCS(0)
 jobs := make(chan string, 100)
 results := make(chan Result, 100)
 
@@ -1949,7 +1949,9 @@ Phase 4 さらなる高速化
 
 - Go Proverbs (Rob Pike): https://go-proverbs.github.io/
 - Go Concurrency Patterns (talk): https://go.dev/talks/2012/concurrency.slide
-- Advanced Go Concurrency Patterns (blog): https://go.dev/blog/advanced-go-concurrency-patterns
 - Advanced Go Concurrency Patterns (slides): https://go.dev/talks/2013/advconc.slide
 - Go Wiki - LearnConcurrency: https://go.dev/wiki/LearnConcurrency
+- Go言語による並行処理（O'Reilly Japan）: https://www.oreilly.co.jp/books/9784873118468/
+- Go言語で学ぶ並行プログラミング（インプレス）: https://book.impress.co.jp/books/1123101144
+- Goでの並行処理を徹底解剖！（Zenn）: https://zenn.dev/hsaki/books/golang-concurrency
 
