@@ -1709,3 +1709,38 @@ Phase 4 さらなる高速化
 - 困ったら聞いてください！
 
 ---
+
+## 参考リンクまとめ
+
+- Rob Pike - Concurrency is not Parallelism (2012): https://go.dev/blog/waza-talk
+- Goroutines in Go - GetStream: https://getstream.io/blog/goroutines-go-concurrency-guide/
+- Go Concurrency Patterns: https://ggbaker.ca/prog-langs/content/go-concurrency.html
+- A Tour of Go - Goroutines: https://go.dev/tour/concurrency/1
+- Go Spec - Go statements: https://go.dev/ref/spec#Go_statements
+- Effective Go - Goroutines: https://go.dev/doc/effective_go#goroutines
+- What is a goroutine? (size): https://tpaschalis.me/goroutines-size/
+- Cloudflare: How Stacks are Handled in Go: https://blog.cloudflare.com/how-stacks-are-handled-in-go/
+- sync.WaitGroup - pkg.go.dev: https://pkg.go.dev/sync#WaitGroup
+- WaitGroup.Go - pkg.go.dev: https://pkg.go.dev/sync#WaitGroup.Go
+- Go Blog - Defer, Panic, and Recover: https://go.dev/blog/defer-panic-and-recover
+- Go 1.25 Release Notes: https://go.dev/doc/go1.25
+- Go Spec - Channel types: https://go.dev/ref/spec#Channel_types
+- Effective Go - Channels: https://go.dev/doc/effective_go#channels
+- Go by Example - Channels: https://gobyexample.com/channels
+- Go Spec - Send statements: https://go.dev/ref/spec#Send_statements
+- Go Spec - Receive operator: https://go.dev/ref/spec#Receive_operator
+- Go Spec - Close: https://go.dev/ref/spec#Close
+- Go Memory Model: https://go.dev/ref/mem
+- Effective Go - Share Memory By Communicating: https://go.dev/doc/effective_go#sharing
+- Go Blog - Pipelines (and cancellation): https://go.dev/blog/pipelines
+- How Many Goroutines Can Go Run?: https://leapcell.io/blog/how-many-goroutines-can-go-run
+- Go by Example: Worker Pools: https://gobyexample.com/worker-pools
+- Go builtin: close: https://pkg.go.dev/builtin#close
+- Go by Example: Closing Channels: https://gobyexample.com/closing-channels
+- Gist of Go: Channels: https://antonz.org/go-concurrency/channels/
+- Go by Example: Channel Buffering: https://gobyexample.com/channel-buffering
+- Go Tour: Buffered Channels: https://go.dev/tour/concurrency/3
+- Go Spec - Select statements: https://go.dev/ref/spec#Select_statements
+- Effective Go - Select: https://go.dev/doc/effective_go#select
+- context package - pkg.go.dev: https://pkg.go.dev/context
+- Go blog - Context: https://go.dev/blog/context
