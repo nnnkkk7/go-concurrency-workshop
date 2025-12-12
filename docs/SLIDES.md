@@ -17,7 +17,7 @@ paginate: true
    - [逐次処理](#逐次処理)
    - [並行処理なら](#並行処理なら)
    - [並行と並列は異なる](#並行と並列は異なる)
-2. [goroutine](#goroutine)
+2. [goroutineを使う](#goroutineを使う)
    - [goroutine とは](#goroutine-とは)
    - [go キーワード](#go-キーワード)
    - [何が起きているのか](#何が起きているのか)
@@ -26,13 +26,12 @@ paginate: true
    - [図で見ると](#図で見ると)
    - [sync.WaitGroup](#syncwaitgroup)
    - [WaitGroup の使い方](#waitgroup-の使い方)
-   - [カウンタの動き](#カウンタの動き)
    - [複数の goroutine を待つ](#複数の-goroutine-を待つ)
    - [なぜ defer を使うのか](#なぜ-defer-を使うのか)
    - [Go 1.25: WaitGroup.Go()](#go-125-waitgroupgo)
    - [WaitGroup.Go() の利点](#waitgroupgo-の利点)
    - [ロジックは分けておく](#ロジックは分けておく)
-3. [channel](#channel)
+3. [channelを使う](#channelを使う)
    - [新しい問題](#新しい問題)
    - [channel とは](#channel-とは)
    - [channel の作り方と使い方](#channel-の作り方と使い方)
@@ -49,7 +48,7 @@ paginate: true
    - [なぜデッドロックになるのか](#なぜデッドロックになるのか)
    - [解決策: 送信と受信を別の goroutine で](#解決策-送信と受信を別の-goroutine-で)
    - [デッドロックを防ぐコツ](#デッドロックを防ぐコツ)
-4. [ワーカープール](#ワーカープール)
+4. [ワーカープールを使う](#ワーカープールを使う)
    - [Phase 2 の方法の問題点](#phase-2-の方法の問題点)
    - [大量の goroutine の問題](#大量の-goroutine-の問題)
    - [ワーカープールの考え方](#ワーカープールの考え方)
@@ -207,7 +206,7 @@ CPUは暇な時間が多い。ファイルI/Oの待ち時間がもったいな�
 
 ---
 
-# goroutine　 ʕ◔ϖ◔ʔ
+# goroutineを使う ʕ◔ϖ◔ʔ
 
 ---
 
@@ -308,22 +307,6 @@ wg.Wait()  // カウンタが0になるまでここで待つ
 
  参考: [sync.WaitGroup - pkg.go.dev](https://pkg.go.dev/sync#WaitGroup) | [WaitGroup.Go - pkg.go.dev](https://pkg.go.dev/sync#WaitGroup.Go)
 
----
-
-## カウンタの動き
-
-```go
-var wg sync.WaitGroup        // カウンタ: 0
-
-wg.Add(1)                    // カウンタ: 1
-go func() {
-    defer wg.Done()          // (終了時に) カウンタ: 0
-    processFile("file1.json")
-}()
-
-wg.Wait()                    // カウンタが0になるまで待機
-fmt.Println("完了")
-```
 
 ---
 
@@ -427,7 +410,7 @@ processFile は「自分が goroutine で呼ばれているか」を知らなく
 
 ---
 
-# channel　 ʕ◔ϖ◔ʔ
+# channelを使う ʕ◔ϖ◔ʔ
 
 ---
 
@@ -728,7 +711,7 @@ func main() {
 
 ---
 
-# ワーカープール　 ʕ◔ϖ◔ʔ
+# ワーカープールを使う ʕ◔ϖ◔ʔ
 
 ---
 
