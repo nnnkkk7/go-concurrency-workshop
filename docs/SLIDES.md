@@ -4,7 +4,7 @@ theme: default
 paginate: true
 ---
 
-# Goで学ぶ並行処理 ʕ◔ϖ◔ʔ
+# 並行処理スピードアップコンテスト ʕ◔ϖ◔ʔ
 
 ---
 
@@ -256,8 +256,7 @@ func main() {
 
 ## goroutine が軽い理由
 
-- 初期スタックサイズ: わずか2KB(Go 1.4以降)
-- Goランタイムが管理、必要に応じて動的に拡張・縮小
+- goroutine のスタックは数KBから開始し、必要に応じて伸縮する
 - 数千〜数万個でも問題なく動く
 
  参考: [What is a goroutine? And what is their size?](https://tpaschalis.me/goroutines-size/) | [Cloudflare: How Stacks are Handled in Go](https://blog.cloudflare.com/how-stacks-are-handled-in-go/)
@@ -1906,7 +1905,7 @@ Phase 4 さらなる高速化
 
 ---
 
-## 参考リンクまとめ
+## スライド内で参照したリンクまとめ
 
 - Rob Pike - Concurrency is not Parallelism (2012): https://go.dev/blog/waza-talk
 - Goroutines in Go - GetStream: https://getstream.io/blog/goroutines-go-concurrency-guide/
@@ -1952,3 +1951,14 @@ Phase 4 さらなる高速化
 - golang.org/x/sync/semaphore - pkg.go.dev: https://pkg.go.dev/golang.org/x/sync/semaphore
 - golang.org/x/time/rate - pkg.go.dev: https://pkg.go.dev/golang.org/x/time/rate
 - sync.Mutex - pkg.go.dev: https://pkg.go.dev/sync#Mutex
+
+---
+
+## 関連資料まとめ
+
+- Go Proverbs (Rob Pike): https://go-proverbs.github.io/
+- Go Concurrency Patterns (talk): https://go.dev/talks/2012/concurrency.slide
+- Advanced Go Concurrency Patterns (blog): https://go.dev/blog/advanced-go-concurrency-patterns
+- Advanced Go Concurrency Patterns (slides): https://go.dev/talks/2013/advconc.slide
+- Go Wiki - LearnConcurrency: https://go.dev/wiki/LearnConcurrency
+
